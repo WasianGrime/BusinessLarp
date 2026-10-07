@@ -28,6 +28,24 @@ npm run preview    # serve the production build
 
 The build is fully static, and asset paths are relative, so `dist/` can be hosted anywhere (GitHub Pages, Netlify, Vercel, …).
 
+## Chrome extension
+
+The app also ships as a Chrome extension. Click its toolbar icon, or press **Alt+Shift+B**, to open the terminal in its own tab. If the tab is already open, it switches to it instead. The extension asks for no permissions.
+
+```bash
+npm run build:extension   # builds into dist-extension/
+```
+
+To install it:
+
+1. Open `chrome://extensions` and turn on **Developer mode** (top right).
+2. Click **Load unpacked** and pick the `dist-extension` folder.
+3. Pin it from the puzzle-piece menu so the icon stays in the toolbar.
+
+This works in any Chromium browser (Chrome, Edge, Brave, Arc). To publish it on the Chrome Web Store, zip the *contents* of `dist-extension/` and upload the zip in the developer dashboard. You can change the shortcut at `chrome://extensions/shortcuts`.
+
+The extension's files live in `extension/`: the manifest, the background script that opens the tab, and the icons.
+
 ## Project layout
 
 ```
