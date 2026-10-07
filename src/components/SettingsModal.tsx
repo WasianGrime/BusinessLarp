@@ -33,6 +33,8 @@ function chaosLabel(v: number): string {
 
 export function SettingsModal({ settings, onSave, onClose, onResetPortfolio, onFactoryReset }: Props) {
   const [draft, setDraft] = useState(settings);
+  // Destructive buttons need a second click; browser confirm() dialogs are blocked in some embeds.
+  const [armed, setArmed] = useState<"portfolio" | "factory" | null>(null);
   const set = <K extends keyof Settings>(k: K, v: Settings[K]) => setDraft((d) => ({ ...d, [k]: v }));
 
   useEffect(() => {
@@ -119,26 +121,32 @@ export function SettingsModal({ settings, onSave, onClose, onResetPortfolio, onF
             <div className="danger-actions">
               <button
                 type="button"
-                className="btn-ghost danger"
+                className={`btn-ghost danger ${armed === "portfolio" ? "armed" : ""}`}
                 onClick={() => {
+                  if (armed !== "portfolio") return setArmed("portfolio");
                   const cash = Math.max(1000, Math.round(draft.startingCash) || 1000);
-                  if (confirm(`Sell everything, forget your trades and start over with ${draft.currency}${cash.toLocaleString()}?`)) {
-                    onSave({ ...draft, startingCash: cash });
-                    onResetPortfolio(cash);
-                    onClose();
-                  }
+                  onSave({ ...draft, startingCash: cash });
+                  onResetPortfolio(cash);
+                  onClose();
                 }}
               >
-                Reset portfolio
+                {armed === "portfolio" ? "Click again to sell everything" : "Reset portfolio"}
               </button>
               <button
                 type="button"
-                className="btn-ghost danger"
-                onClick={() => confirm("Erase all settings, IPOs, your watchlist and portfolio?") && onFactoryReset()}
+                className={`btn-ghost danger ${armed === "factory" ? "armed" : ""}`}
+                onClick={() => (armed === "factory" ? onFactoryReset() : setArmed("factory"))}
               >
-                Factory reset
+                {armed === "factory" ? "Click again to erase everything" : "Factory reset"}
               </button>
             </div>
+            {armed && (
+              <div className="danger-note">
+                {armed === "portfolio"
+                  ? "This sells every position and clears your trade history."
+                  : "This erases your settings, IPOs, watchlist and portfolio."}
+              </div>
+            )}
           </fieldset>
         </div>
 
