@@ -6,7 +6,7 @@ import { loadJSON, saveJSON } from "./usePersistentState";
 const PRICES_KEY = "prices";
 
 /** Runs the fake market: one tick every `tickMs` until `paused`. */
-export function useMarket(companies: Company[], tickMs: number, chaos: number, paused: boolean): MarketState {
+export function useMarket(companies: Company[], tickMs: number, chaos: number, paused: boolean, bull: boolean): MarketState {
   const [market, setMarket] = useState<MarketState>(() =>
     initMarket(companies, tickMs, loadJSON<Record<string, number>>(PRICES_KEY) ?? {}),
   );
@@ -14,9 +14,11 @@ export function useMarket(companies: Company[], tickMs: number, chaos: number, p
   // Refs let the interval read the latest values without being torn down on every change.
   const companiesRef = useRef(companies);
   const chaosRef = useRef(chaos);
+  const bullRef = useRef(bull);
   const marketRef = useRef(market);
   companiesRef.current = companies;
   chaosRef.current = chaos;
+  bullRef.current = bull;
   marketRef.current = market;
 
   // Give newly IPO'd companies a chart right away, even while the market is paused.
@@ -34,7 +36,7 @@ export function useMarket(companies: Company[], tickMs: number, chaos: number, p
   useEffect(() => {
     if (paused) return;
     const id = setInterval(() => {
-      setMarket((m) => stepMarket(m, companiesRef.current, chaosRef.current, tickMs));
+      setMarket((m) => stepMarket(m, companiesRef.current, chaosRef.current, tickMs, bullRef.current));
     }, tickMs);
     return () => clearInterval(id);
   }, [tickMs, paused]);

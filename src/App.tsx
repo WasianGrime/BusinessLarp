@@ -22,6 +22,7 @@ const DEFAULT_SETTINGS: Settings = {
   speed: "normal",
   chaos: 1,
   theme: "dark",
+  bullMode: false,
 };
 
 const newPortfolio = (cash: number): Portfolio => ({ cash, startingCash: cash, holdings: {}, trades: [] });
@@ -42,7 +43,7 @@ export default function App() {
 
   const companies = useMemo(() => [...COMPANIES, ...customCompanies], [customCompanies]);
   const bySymbol = useMemo(() => new Map(companies.map((c) => [c.symbol, c])), [companies]);
-  const market = useMarket(companies, TICK_MS[settings.speed], settings.chaos, paused);
+  const market = useMarket(companies, TICK_MS[settings.speed], settings.chaos, paused, settings.bullMode);
   const { quotes } = market;
 
   const currentSymbol = bySymbol.has(selected) ? selected : companies[0].symbol;
@@ -153,6 +154,11 @@ export default function App() {
         totalPnlPct={pctChange(portfolio.startingCash, netWorth)}
         paused={paused}
         onTogglePause={() => setPaused((p) => !p)}
+        onToggleBull={() => {
+          const on = !settings.bullMode;
+          setSettings((s) => ({ ...s, bullMode: on }));
+          notify(on ? "🐂 Bull run engaged. Number go up." : "Bull run over. Back to regular chaos.");
+        }}
         onOpenSettings={() => setSettingsOpen(true)}
       />
       <TickerTape companies={companies} quotes={quotes} currency={settings.currency} onSelect={setSelected} />

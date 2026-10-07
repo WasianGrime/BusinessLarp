@@ -9,6 +9,7 @@ interface Props {
   totalPnlPct: number;
   paused: boolean;
   onTogglePause: () => void;
+  onToggleBull: () => void;
   onOpenSettings: () => void;
 }
 
@@ -16,7 +17,7 @@ function initials(name: string): string {
   return name.split(/\s+/).filter(Boolean).slice(0, 2).map((p) => p[0]!.toUpperCase()).join("") || "?";
 }
 
-export function Header({ settings, netWorth, totalPnl, totalPnlPct, paused, onTogglePause, onOpenSettings }: Props) {
+export function Header({ settings, netWorth, totalPnl, totalPnlPct, paused, onTogglePause, onToggleBull, onOpenSettings }: Props) {
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 1000);
@@ -40,6 +41,14 @@ export function Header({ settings, netWorth, totalPnl, totalPnlPct, paused, onTo
         <button className={`status-pill ${paused ? "paused" : "live"}`} onClick={onTogglePause} title={paused ? "Resume the market" : "Pause the market"}>
           <span className="dot" />
           {paused ? "MARKET PAUSED (lunch)" : "MARKET OPEN 24/7/365"}
+        </button>
+        <button
+          className={`status-pill bull ${settings.bullMode ? "on" : ""}`}
+          onClick={onToggleBull}
+          aria-pressed={settings.bullMode}
+          title={settings.bullMode ? "Stop the bull run" : "Make the whole market drift slowly upward"}
+        >
+          🐂 BULL RUN {settings.bullMode ? "ON" : "OFF"}
         </button>
         <span className="clock">{now.toLocaleTimeString("en-US", { hour12: false })} EST (Extremely Serious Time)</span>
       </div>

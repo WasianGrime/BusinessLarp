@@ -36,6 +36,8 @@ export interface Quote {
   candles: Candle[];
   /** Ticks folded into the newest candle so far. */
   ticksInCandle: number;
+  /** Level the price is gently pulled back toward. */
+  anchor: number;
   /** Direction of the most recent tick, for flashing prices. */
   lastMove: -1 | 0 | 1;
 }
@@ -82,4 +84,6 @@ export interface Settings {
   /** Volatility multiplier, 0.5 (calm) to 3 (unhinged). */
   chaos: number;
   theme: Theme;
+  /** Slow, steady upward drift across the whole market. */
+  bullMode: boolean;
 }

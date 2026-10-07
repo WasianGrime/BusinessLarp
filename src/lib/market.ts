@@ -35,13 +35,17 @@ interface StepResult {
   jump: number;
 }
 
-function stepPrice(c: Company, price: number, chaos: number): StepResult {
-  const sigma = 0.0022 * c.volatility * chaos;
+/** Per-tick upward drift in bull mode: roughly +0.3% per candle. */
+const BULL_DRIFT = 0.0006;
+
+function stepPrice(c: Company, price: number, anchor: number, chaos: number, bull = false): StepResult {
+  // Bull mode calms the noise so the climb reads as a steady trend.
+  const sigma = 0.0022 * c.volatility * chaos * (bull ? 0.6 : 1);
   // Gentle mean reversion so prices never wander off to zero or infinity.
-  const revert = -0.004 * Math.log(price / c.basePrice);
+  const revert = -0.004 * Math.log(price / anchor) + (bull ? BULL_DRIFT : 0);
   let jump = 0;
   if (Math.random() < 0.0015 * chaos) {
-    const sign = Math.random() < 0.5 ? -1 : 1;
+    const sign = Math.random() < (bull ? 0.85 : 0.5) ? 1 : -1;
     jump = sign * (0.035 + Math.random() * 0.09) * Math.min(c.volatility, 2);
   }
   const r = sigma * gauss() + revert + jump;
@@ -58,7 +62,7 @@ export function initQuote(c: Company, now: number, tickMs: number, endPrice?: nu
   for (let i = 0; i < HISTORY_CANDLES; i++) {
     const candle: Candle = { t: now - (HISTORY_CANDLES - i) * candleMs, o: price, h: price, l: price, c: price, v: 0 };
     for (let k = 0; k < TICKS_PER_CANDLE; k++) {
-      const s = stepPrice(c, price, 1);
+      const s = stepPrice(c, price, c.basePrice, 1);
       price = s.price;
       candle.h = Math.max(candle.h, price);
       candle.l = Math.min(candle.l, price);
@@ -90,6 +94,7 @@ export function initQuote(c: Company, now: number, tickMs: number, endPrice?: nu
     volume: candles.reduce((sum, cd) => sum + cd.v, 0),
     candles,
     ticksInCandle: TICKS_PER_CANDLE,
+    anchor: endPrice && endPrice > 0 ? endPrice : c.basePrice,
     lastMove: 0,
   };
 }
@@ -109,14 +114,14 @@ export function initMarket(companies: Company[], tickMs: number, savedPrices: Re
   return { quotes, spikes };
 }
 
-export function stepMarket(state: MarketState, companies: Company[], chaos: number, tickMs: number): MarketState {
+export function stepMarket(state: MarketState, companies: Company[], chaos: number, tickMs: number, bull = false): MarketState {
   const now = Date.now();
   const quotes: Record<string, Quote> = {};
   const newSpikes: Spike[] = [];
 
   for (const c of companies) {
     const q = state.quotes[c.symbol] ?? initQuote(c, now, tickMs);
-    const s = stepPrice(c, q.price, chaos);
+    const s = stepPrice(c, q.price, q.anchor, chaos, bull);
     const pct = ((s.price - q.price) / q.price) * 100;
 
     const candles = q.candles.slice();
@@ -145,6 +150,8 @@ export function stepMarket(state: MarketState, companies: Company[], chaos: numb
       volume: q.volume + s.volume,
       candles,
       ticksInCandle,
+      // In bull mode the anchor ratchets up, so gains stick after it's switched off.
+      anchor: bull ? Math.max(q.anchor, s.price) : q.anchor,
       lastMove: s.price > q.price ? 1 : s.price < q.price ? -1 : 0,
     };
 
